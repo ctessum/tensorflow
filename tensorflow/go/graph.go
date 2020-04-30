@@ -61,6 +61,13 @@ type GraphImportOptions struct {
 	// Execution device
 	Device string
 
+	// InputMapping defines a mapping between operations in the graph
+	// and operations they should be replaced with.
+	InputMapping map[struct {
+		Name  string
+		Index int
+	}]Output
+
 	// TODO: extend this structure to support more options from TF_ImportGraphDefOptions
 }
 
@@ -120,6 +127,12 @@ func (g *Graph) ImportWithOptions(def []byte, options GraphImportOptions) error 
 		cdev := C.CString(options.Device)
 		defer C.free(unsafe.Pointer(cdev))
 		C.TF_ImportGraphDefOptionsSetDefaultDevice(opts, cdev)
+	}
+
+	for src, dst := range options.InputMapping {
+		cSrcName := C.CString(src.Name)
+		C.TF_ImportGraphDefOptionsAddInputMapping(opts, cSrcName, C.int(src.Index), dst.c())
+		C.free(unsafe.Pointer(cSrcName))
 	}
 
 	buf := C.TF_NewBuffer()
